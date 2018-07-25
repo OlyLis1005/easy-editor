@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!--<link rel="stylesheet" href="./easy-editor.css">-->
+    <link rel="stylesheet" href="https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+
+    <title>Title</title>
+    <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdn.bootcss.com/angular.js/1.7.0/angular.min.js"></script>
+    <script src="https://cdn.bootcss.com/angular-ui-bootstrap/2.5.0/ui-bootstrap-tpls.min.js"></script>
+    <script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script>
+        angular
+            .module('myApp', ['ui.bootstrap'])
+            .controller('EasyEditorController', EasyEditorController)
+
+        EasyEditorController.$inject = [];
+        function EasyEditorController () {
+            let vm = this;
+            let editorElement = $('.easy-editor-content');
+            let lastEditRange;
+            vm.fontSizes = [14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 36];
+            vm.colors = ['#ffffff', '#000000', '#c0c0c0', '#808080', '#800000', '#ff0000', '#00ff00', 'ffff00'];
+            // vm.$onInit = () => {// directive传入的参数在该函数里获取};
+            vm.setBold = () => {document.execCommand('bold', false, null);};
+            vm.setItalic = () => {document.execCommand('italic', false, null);};
+            vm.setUnderline = () => {document.execCommand('underline', false, null);};
+            vm.undo = () => {document.execCommand('undo', false, null);};
+            vm.setFontColor = color => {document.execCommand('foreColor', false, color);};
+            vm.setBackColor = color => {document.execCommand('backColor', false, color);};
+            vm.setFont = fontSize => {
+                // document.execCommand('fontSize', false, fontSize.toString()); // 基于font标签的修改字体大小，不好
+                let spanString = $('<span/>', {'text': document.getSelection()}).css('font-size', fontSize + 'px').prop('outerHTML');
+                document.execCommand('insertHTML', false, spanString);
+            };
+            vm.insertImage = () => {
+                // 需要先保存光标位置，然后输入url（此时编辑器失去焦点），恢复编辑器上次的光标位置
+                setFocus(editorElement, lastEditRange);
+                document.execCommand('insertImage', false, vm.imageUrl);
+                vm.imageUrl = '';
+            };
+            vm.openInsertImage = () => {
+                lastEditRange = window.getSelection().getRangeAt(0);
+            };
+            function setFocus(ele, range) {
+                ele.focus();
+                let selection = window.getSelection();
+                if (range) {
+                    selection.removeAllRanges();
+                    selection.addRange(range)
+                }
+            }
+        }
+    </script>
+    <style>
+        .inline-block {
+            display: inline-block;
+        }
+
+        .easy-editor-container {
+            padding: 15px 10px;
+        }
+
+        .easy-editor-content {
+            outline: none;
+            border: 1px solid #333;
+            padding: 15px 10px;
+            min-height: 400px;
+            margin-top: 10px;
+        }
+
+        .editor-dropdown-menu {
+            user-select: none;
+        }
+
+        .dropdown-menu.editor-dropdown-menu > li {
+            padding: 0 20px;
+        }
+
+        .editor-color-list {
+            padding: 15px 10px;
+        }
+
+        .editor-color-btn {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #000;
+            border-radius: 2px;
+            margin-right: 5px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body ng-app="myApp">
+<div ng-controller="EasyEditorController as vm">
+    <div class="easy-editor-container">
+        <div class="easy-editor-toolbar">
+            <button type="button" ng-click="vm.undo()"><i class="fa fa-undo" aria-hidden="true"></i></button>
+            <div class="inline-block" uib-dropdown>
+                <button uib-dropdown-toggle><i class="fa fa-font" aria-hidden="true"></i></button>
+                <ul class="editor-dropdown-menu" uib-dropdown-menu>
+                    <li ng-repeat="fontSize in vm.fontSizes" ng-click="vm.setFont(fontSize)"><span ng-style="{'font-size': fontSize + 'px'}">{{fontSize}}</span></li>
+                </ul>
+            </div>
+            <button type="button" ng-click="vm.setBold()"><i class="fa fa-bold" aria-hidden="true"></i></button>
+            <button type="button" ng-click="vm.setUnderline()"><i class="fa fa-underline" aria-hidden="true"></i></button>
+            <button type="button" ng-click="vm.setItalic()"><i class="fa fa-italic" aria-hidden="true"></i></button>
+            <div class="inline-block" uib-dropdown>
+                <button uib-dropdown-toggle><i class="fa fa-pencil" aria-hidden="true"></i></button>
+                <div class="editor-dropdown-menu editor-color-list" uib-dropdown-menu>
+                    <button class="editor-color-btn" ng-repeat="color in vm.colors" ng-style="{'background-color': color}" ng-click="vm.setFontColor(color)"></button>
+                </div>
+            </div>
+            <div class="inline-block" uib-dropdown>
+                <button uib-dropdown-toggle><i class="fa fa-pencil-square" aria-hidden="true"></i></button>
+                <div class="editor-dropdown-menu editor-color-list" uib-dropdown-menu>
+                    <button class="editor-color-btn" ng-repeat="color in vm.colors" ng-style="{'background-color': color}" ng-click="vm.setBackColor(color)"></button>
+                </div>
+            </div>
+            <div class="inline-block" uib-dropdown auto-close="outsideClick" is-open="dropDownIsOpen">
+                <button uib-dropdown-toggle ng-click="vm.openInsertImage()"><i class="fa fa-picture-o" aria-hidden="true"></i></button>
+                <div class="editor-dropdown-menu" uib-dropdown-menu>
+                    <form name="insert_image">
+                        <input type="text" name="image_url" ng-model="vm.imageUrl" placeholder="网络图片链接" required>
+                        <button type="button" ng-click="vm.insertImage();dropDownIsOpen = false;" ng-disabled="insert_image.$error.$invalid">确定</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="easy-editor-content" contenteditable="true">
+            <p contenteditable="true">基于angular、bootstrap、font-awesome富文本编辑器，写几个功能玩玩</p>
+        </div>
+    </div>
+</div>
+</body>
+</html>
